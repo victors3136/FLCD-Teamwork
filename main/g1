@@ -88,5 +88,5 @@ relation -> >
 relation -> >=
 relation -> and
 relation -> or
-# Start Symbol
+# Start symbol
 program
