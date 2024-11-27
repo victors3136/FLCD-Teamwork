@@ -20,29 +20,29 @@ class ContextFreGrammar:
 
     @staticmethod
     def filter_lines(lines: [str]) -> [str]:
-        return [line
+        return [line.strip()
                 for line in lines
-                if line is not None and len(line) != 0]
+                if line is not None and len(line.strip()) != 0]
 
     def __init__(self, filename: str):
-        self.nonterminals = set()
-        self.terminals = set()
-        self.start_symbol = ""
-        self.productions = {}
+        self.nonterminals: set[str] = set()
+        self.terminals: set[str] = set()
+        self.start_symbol: str = ""
+        self.productions: dict = {}
 
         with open(filename, 'r') as file:
-            lines = ContextFreGrammar.filter_lines(file.readlines())
+            lines: [str] = ContextFreGrammar.filter_lines(file.readlines())
 
-        current_section = None
-        prev_section = None
+        new_section: int or None = None
+        section: int or None = None
         for line in lines:
             line = line.strip()
 
             if line.startswith("#"):
-                prev_section = current_section
-                current_section = ContextFreGrammar.str_to_section(line.strip("#"))
-            if not current_section and prev_section:
-                match prev_section:
+                section = new_section
+                new_section = ContextFreGrammar.str_to_section(line.strip("#"))
+            if not new_section and section:
+                match section:
                     case ContextFreGrammar.NONTERMINALS:
                         pass
                     case ContextFreGrammar.TERMINALS:
