@@ -81,11 +81,4 @@ class ContextFreGrammar:
         return self.productions.get(nonterminal, [])
 
     def is_valid_cfg(self):
-        if not all(lhs in self.nonterminals for lhs in self.productions):
-            return False
-
-        for rhs_list in self.productions.values():
-            for rhs in rhs_list:
-                if not all(symbol in self.nonterminals.union(self.terminals) for symbol in rhs.split()):
-                    return False
-        return True
+        return all(lhs in self.nonterminals for lhs in self.productions)

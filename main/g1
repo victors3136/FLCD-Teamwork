@@ -69,7 +69,7 @@ ifstmt -> if condition cmpdstmt else cmpdstmt endif
 ifstmt -> if condition cmpdstmt endif
 forstmt -> for ( assignstmt condition ; assignstmt ) cmpdstmt endfor
 whilestmt -> while condition cmpdstmt endwhile
-returnstmt -> result -> expression ;
+returnstmt -> result <- expression ;
 expression -> expression + term
 expression -> expression - term
 expression -> term
