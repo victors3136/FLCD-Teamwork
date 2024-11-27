@@ -28,7 +28,7 @@ class ContextFreGrammar:
         self.nonterminals: set[str] = set()
         self.terminals: set[str] = set()
         self.start_symbol: str = ""
-        self.productions: dict[str, list[str]] = {}
+        self.productions: dict[str, list[list[str]]] = {}
 
         with open(filename, 'r') as file:
             lines: [str] = ContextFreGrammar.filter_lines(file.readlines())
@@ -50,11 +50,11 @@ class ContextFreGrammar:
                     case ContextFreGrammar.PRODUCTIONS:
                         lhs, rhs = line.split("->")
                         lhs = lhs.strip()
-                        rhs_list = [prod.strip() for prod in rhs.split('|')]
+                        rhs = [item.strip() for item in rhs.strip().split()]
                         if lhs in self.productions:
-                            self.productions[lhs].extend(rhs_list)
+                            self.productions[lhs].extend([rhs])
                         else:
-                            self.productions[lhs] = rhs_list
+                            self.productions[lhs] = [rhs]
                     case ContextFreGrammar.START_SYMBOL:
                         self.start_symbol = line.strip()
 
@@ -63,8 +63,8 @@ class ContextFreGrammar:
                 f"Terminals: {self.terminals}\n"
                 f"Start Symbol: {self.start_symbol}\n"
                 f"Productions:\n" +
-                "\n".join(f"{prod} -> {' | '.join(self.productions[prod])}"
-                          for prod in self.productions))
+                "\n".join(f"{nonterminal} -> {' | '.join(' '.join(blabla) for blabla in self.productions[nonterminal])}"
+                          for nonterminal in self.productions))
 
     def get_nonterminals(self):
         return self.nonterminals
