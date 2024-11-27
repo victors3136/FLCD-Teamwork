@@ -51,6 +51,8 @@ class ContextFreGrammar:
                         lhs, rhs = line.split("->")
                         lhs = lhs.strip()
                         rhs = [item.strip() for item in rhs.strip().split()]
+                        if rhs == ['eps']:
+                            rhs = []
                         if lhs in self.productions:
                             self.productions[lhs].extend([rhs])
                         else:
