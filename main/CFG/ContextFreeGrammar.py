@@ -5,15 +5,15 @@ class ContextFreGrammar:
     START_SYMBOL: int = 3
 
     @staticmethod
-    def str_to_section(string: str) -> str or None:
-        match string:
-            case 'Nonterminals':
+    def str_to_section(string: str) -> int or None:
+        match string.strip():
+            case 'Non-terminals':
                 return ContextFreGrammar.NONTERMINALS
             case 'Terminals':
                 return ContextFreGrammar.TERMINALS
             case 'Productions':
                 return ContextFreGrammar.PRODUCTIONS
-            case 'Start Symbol':
+            case 'Start symbol':
                 return ContextFreGrammar.START_SYMBOL
             case _:
                 return None
@@ -22,40 +22,41 @@ class ContextFreGrammar:
     def filter_lines(lines: [str]) -> [str]:
         return [line.strip()
                 for line in lines
-                if line is not None and len(line.strip()) != 0]
+                if line and len(line.strip()) != 0]
 
     def __init__(self, filename: str):
         self.nonterminals: set[str] = set()
         self.terminals: set[str] = set()
         self.start_symbol: str = ""
-        self.productions: dict = {}
+        self.productions: dict[str, list[str]] = {}
 
         with open(filename, 'r') as file:
             lines: [str] = ContextFreGrammar.filter_lines(file.readlines())
 
-        new_section: int or None = None
         section: int or None = None
         for line in lines:
             line = line.strip()
 
             if line.startswith("#"):
-                section = new_section
-                new_section = ContextFreGrammar.str_to_section(line.strip("#"))
-            if not new_section and section:
+                section = ContextFreGrammar.str_to_section(line.strip("#").strip())
+                continue
+
+            if section is not None:
                 match section:
                     case ContextFreGrammar.NONTERMINALS:
-                        pass
+                        self.nonterminals.add(line)
                     case ContextFreGrammar.TERMINALS:
-                        pass
+                        self.terminals.add(line.strip('"'))
                     case ContextFreGrammar.PRODUCTIONS:
-                        pass
+                        lhs, rhs = line.split("->")
+                        lhs = lhs.strip()
+                        rhs_list = [prod.strip() for prod in rhs.split('|')]
+                        if lhs in self.productions:
+                            self.productions[lhs].extend(rhs_list)
+                        else:
+                            self.productions[lhs] = rhs_list
                     case ContextFreGrammar.START_SYMBOL:
-                        pass
-                    case _:
-                        pass
-            else:
-                # error
-                pass
+                        self.start_symbol = line.strip()
 
     def __str__(self):
         return (f"Non-Terminals: {self.nonterminals}\n"
@@ -83,6 +84,6 @@ class ContextFreGrammar:
 
         for rhs_list in self.productions.values():
             for rhs in rhs_list:
-                if not all(symbol in self.nonterminals.union(self.terminals) for symbol in rhs):
+                if not all(symbol in self.nonterminals.union(self.terminals) for symbol in rhs.split()):
                     return False
         return True
