@@ -19,7 +19,7 @@ class ContextFreGrammar:
                 return None
 
     @staticmethod
-    def filter_lines(lines: [str]) -> [str]:
+    def filter_lines(lines: list[str]) -> list[str]:
         return [line.strip()
                 for line in lines
                 if line and len(line.strip()) != 0]
@@ -68,13 +68,13 @@ class ContextFreGrammar:
                 "\n".join(f"{nonterminal} -> {' | '.join(' '.join(blabla) for blabla in self.productions[nonterminal])}"
                           for nonterminal in self.productions))
 
-    def get_nonterminals(self):
+    def get_nonterminals(self) -> set[str]:
         return self.nonterminals
 
-    def get_terminals(self):
+    def get_terminals(self) -> set[str]:
         return self.terminals
 
-    def get_productions(self):
+    def get_productions(self) -> dict[str, list[list[str]]]:
         return self.productions
 
     def get_productions_for(self, nonterminal):
@@ -82,3 +82,185 @@ class ContextFreGrammar:
 
     def is_valid_cfg(self):
         return all(lhs in self.nonterminals for lhs in self.productions)
+
+
+class ParseException(Exception):
+    pass
+
+
+class RecursiveDescentParser:
+    NORMAL: str = "normal"
+    BACKTRACK: str = "backtrack"
+    ERROR: str = "error"
+    FINAL: str = "final"
+
+    def error(self) -> None:
+        self.state = self.ERROR
+
+    def all_good(self) -> None:
+        self.state = self.NORMAL
+
+    def insuccess(self) -> None:
+        self.state = self.BACKTRACK
+
+    def end(self) -> None:
+        self.state = self.FINAL
+
+    def current_input(self) -> str:
+        if len(self.input_stack) <= self.index:
+            raise ParseException(
+                f"Could not retrieve current input for current index {self.index} and input stack of length {len(self.input_stack)}")
+        return self.input_stack[self.index]
+
+    def __init__(self, grammar: ContextFreGrammar) -> None:
+        self.grammar: ContextFreGrammar = grammar
+        self.state: str = RecursiveDescentParser.NORMAL
+        self.index: int = 0
+        self.working_stack: list[str] = []
+        self.input_stack: list[str] = []
+        self.parse_table: list[str] = []
+        self.current_nonterminal_prod_id: dict[str, int] = {}
+
+    def expand(self) -> None:
+        """
+        Perform the Expand action:
+        - If the head of the input stack is a nonterminal, expand it using its first production.
+        - Update the working stack and input stack accordingly.
+        """
+        if not self.input_stack:
+            raise ParseException("You should not call 'expand' when the input stack is empty!")
+
+        current: str = self.input_stack.pop(0)
+        if current not in self.grammar.get_nonterminals():
+            raise ParseException(
+                f"You should not call 'expand' when the top is a terminal!\nHead was {current}")
+
+        # first time encountering this non-terminal?
+        #  => make sure to remember it!
+        if current not in self.current_nonterminal_prod_id:
+            self.current_nonterminal_prod_id[current] = 0
+
+        production_index: int = self.current_nonterminal_prod_id[current]
+        productions: list[list[str]] = self.grammar.get_productions_for(current)
+
+        # non-terminal with no productions?! -> I guess this is also an error produced by wrong code :)
+        if not productions:
+            raise ParseException(
+                f"You created a non-terminal with no productions\nThe terminal is {current}")
+
+        current_production = productions[production_index]
+        self.working_stack.append(f"{current}{production_index + 1}")
+        self.input_stack = current_production + self.input_stack
+
+        self.current_nonterminal_prod_id[current] = production_index + \
+                                                    (1 if production_index + 1 < len(productions) else 0)
+
+    def advance(self, input_sequence: list[str]) -> None:
+        """
+        Perform the Advance action:
+        - Match the terminal at the head of the input stack with the current input symbol.
+        - Update the working stack, input stack, and current index.
+        """
+        if not self.input_stack:
+            raise ParseException("You should not call 'expand' when the input stack is empty!")
+
+        head = self.input_stack.pop(0)
+        if self.index >= len(input_sequence) or head != input_sequence[self.index]:
+            self.error()
+            return
+
+        self.working_stack.append(head)
+        self.index += 1
+
+    def momentary_insuccess(self, input_sequence: list[str]) -> None:
+        """
+        Perform the Momentary Insuccess action:
+        - If the terminal at the head of the input stack does not match the current input symbol,
+        transition to the backtrack state.
+        """
+        if not self.input_stack:
+            raise ParseException("You should not call 'momentary_insuccess' when the input stack is empty!")
+
+        current = self.input_stack[0]
+
+        if self.index < len(input_sequence) and current != input_sequence[self.index]:
+            self.insuccess()
+
+    def back(self):
+        """
+        Perform the Back action:
+        - If the head of the working stack is a terminal, move it back to the input stack
+          and step back in the input sequence.
+        """
+        # we can't go back
+        # so there are no more opportunities to explore
+        if not self.working_stack or self.index <= 0:
+            self.error()
+            return
+
+        current = self.working_stack.pop()
+
+        # TODO not sure if this check needed here
+        if current not in self.grammar.get_terminals():
+            raise ParseException("You should not backtrack on a non-terminal")
+
+        self.input_stack.insert(0, current)
+        self.index -= 1
+
+    def another_try(self) -> None:
+        """
+        Perform the 'Another Try' action:
+        - If the head of the working stack is a nonterminal and another production exists for it,
+          switch to the next production.
+        - Otherwise, backtrack by removing the nonterminal from the working stack and restoring it
+          to the input stack.
+        - If no more productions exist and the nonterminal is the start symbol with index 1,
+          raise a parse error.
+        """
+        if not self.working_stack:
+            raise ParseException("Cannot perform 'another_try' because the working stack is empty.")
+
+        head = self.working_stack.pop()
+
+        # TODO improve this to avoid errors when we get to A10
+        if head[:-1] in self.grammar.get_nonterminals():  # e.g., "A1" -> "A"
+            raise ParseException("You should not call 'another_try' on a terminal.")
+
+        nonterminal = head[:-1]  # Extract the nonterminal part (e.g., "A")
+        production_index = self.current_nonterminal_prod_id[nonterminal]
+
+        productions = self.grammar.get_productions_for(nonterminal)
+        if not productions:
+            raise ParseException(f"No productions exist for nonterminal {nonterminal}.")
+
+        if production_index + 1 >= len(productions):
+            self.input_stack.insert(0, nonterminal)
+            if self.index == 0 and nonterminal == self.grammar.start_symbol:
+                raise ParseException("Parsing failed: no more options for the start symbol.")
+            self.insuccess()
+            return
+
+        next_production_index = production_index + 1
+        next_production = productions[next_production_index]
+
+        self.working_stack.append(f"{nonterminal}{next_production_index + 1}")
+        current_production = productions[production_index]
+
+        # Delete current production from the input stack
+        for _ in current_production:
+            self.input_stack.pop(0)
+
+        self.input_stack = next_production + self.input_stack
+        self.all_good()
+
+    def success(self, input_sequence: list[str]) -> None:
+        """
+        Perform the Success action:
+        - If the input stack is empty, and we've reached the end of the input sequence,
+          transition to the final state.
+        - Otherwise, it's an error, because we haven't successfully parsed the input.
+        """
+        if self.index != len(input_sequence) or self.input_stack:
+            raise ParseException(
+                "Parsing unsuccessful: either input stack is not empty or input sequence is incomplete.")
+        self.end()
