@@ -1,0 +1,6 @@
+Symbol Table Contents:
+Bucket 1: [('0', '1.1'), ('2', '1.2')]
+Bucket 2: [('1', '2.1')]
+Bucket 3: [('3', '3.1')]
+Bucket 4: [('verifyIfPrime', '4.1')]
+Bucket 6: [('a', '6.1'), ('d', '6.2')]
