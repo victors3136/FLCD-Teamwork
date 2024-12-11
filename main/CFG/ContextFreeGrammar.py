@@ -87,7 +87,6 @@ class ContextFreGrammar:
 class ParseException(Exception):
     pass
 
-
 class RecursiveDescentParser:
     NORMAL: str = "normal"
     BACKTRACK: str = "backtrack"
@@ -121,6 +120,9 @@ class RecursiveDescentParser:
         self.input_stack = [grammar.start_symbol]
         self.parse_table: list[str] = []
         self.current_nonterminal_prod_id: dict[str, int] = {}
+
+    def __str__(self) -> str:
+        return f"State: {self.state}, Index: {self.index}, Input Stack: {self.input_stack}, Working Stack: {self.working_stack}"
 
     def expand(self) -> None:
         """
@@ -269,8 +271,7 @@ class RecursiveDescentParser:
 
     def parse(self):
         while self.state not in {self.ERROR, self.FINAL}:
-            print(
-                f"State: {self.state}, Index: {self.index}, Input Stack: {self.input_stack}, Working Stack: {self.working_stack}")
+            print(self.__str__())
 
             if self.state == self.NORMAL:
                 if self.index == len(self.input_sequence) and not self.input_stack:
@@ -295,6 +296,5 @@ class RecursiveDescentParser:
             return "Sequence accepted"
         else:
             return "Error: Parsing failed"
-
 
 

@@ -1,5 +1,6 @@
 import re
 
+
 class SymbolTable:
     def __init__(self, size):
         self.table_size = size
@@ -30,12 +31,13 @@ class SymbolTable:
 
 
 class Lexer:
-    def __init__(self, token_file, symbol_table):
-        self.tokens = self.load_tokens(token_file)
-        self.symbol_table = symbol_table
+    def __init__(self, token_file, table):
+        self.tokens = Lexer.load_tokens(token_file)
+        self.symbol_table = table
         self.pif = []
 
-    def load_tokens(self, token_file):
+    @staticmethod
+    def load_tokens(token_file):
         tokens = {}
         with open(token_file, "r") as file:
             for index, line in enumerate(file.readlines()):
@@ -56,7 +58,7 @@ class Lexer:
                     index += 1
                     continue
 
-                token, index = self.extract_token(line, index)
+                token, index = Lexer.extract_token(line, index)
                 if token in self.tokens:
                     self.pif.append((token, self.tokens[token], -1))
                 elif re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', token):
@@ -72,7 +74,8 @@ class Lexer:
         print("Lexically correct")
         self.save_pif()
 
-    def extract_token(self, line, index):
+    @staticmethod
+    def extract_token(line, index):
         operators = {'+', '-', '*', '/', '%', '=', '==', '<', '>', '->', '+=', '<=', '>='}
         token = ""
         if line[index].isalnum() or line[index] == '_':
