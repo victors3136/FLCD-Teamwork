@@ -1,14 +1,14 @@
 # Non-terminals
-A
-B
-C
-D
+S
+
 # Terminals
-t1
-t2
+"a"
+"b"
+"c"
+
 # Productions
-A -> t1 B
-t1 A -> t1
-B -> t2 B
+S -> a S b
+S -> c
+
 # Start symbol
-A
+S
