@@ -223,14 +223,15 @@ class RecursiveDescentParser:
 
         head = self.working_stack.pop()
 
-        # TODO improve this to avoid errors when we get to A10
-        if head[:-1] in self.grammar.get_nonterminals():  # e.g., "A1" -> "A"
+        # Check if the head represents a non-terminal or terminal
+        if head[-1].isdigit():  # This assumes that non-terminals do not end with digits
+            nonterminal = head[:-1]  # Extract the non-terminal part
+        else:
             raise ParseException("You should not call 'another_try' on a terminal.")
 
-        nonterminal = head[:-1]  # Extract the nonterminal part (e.g., "A")
         production_index = self.current_nonterminal_prod_id[nonterminal]
-
         productions = self.grammar.get_productions_for(nonterminal)
+
         if not productions:
             raise ParseException(f"No productions exist for nonterminal {nonterminal}.")
 
